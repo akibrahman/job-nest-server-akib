@@ -36,6 +36,9 @@ async function run() {
 
     //! Collections
     const allJobsCollection = client.db("JobNestDB").collection("AllJobs");
+    const appliedJobsCollection = client
+      .db("JobNestDB")
+      .collection("AppliedJobs");
 
     //! Get All Jobs
     app.get("/all-jobs", async (req, res) => {
@@ -86,6 +89,22 @@ async function run() {
     app.post("/add-a-job", async (req, res) => {
       const data = req.body;
       const result = await allJobsCollection.insertOne(data);
+      res.send(result);
+    });
+
+    //! Add Applied Job
+    app.post("/add-a-applied-job", async (req, res) => {
+      const data = req.body;
+      const result = await appliedJobsCollection.insertOne(data);
+      res.send(result);
+    });
+
+    //! Find from appliedJobs to prevent two application on a same Job
+    app.post("/get-a-applied-job", async (req, res) => {
+      const { email, id } = await req.body;
+      const result = await appliedJobsCollection.findOne({
+        $and: [{ jobID: id }, { applicantEmail: email }],
+      });
       res.send(result);
     });
   } finally {
