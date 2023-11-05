@@ -63,6 +63,25 @@ async function run() {
       res.send(result);
     });
 
+    //! Update Applihcants Count in a job
+    app.patch("/applicants-count/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const target = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedJob = {
+        $set: {
+          applicants: parseInt(data.previousCount) + 1,
+        },
+      };
+      const result = await allJobsCollection.updateOne(
+        target,
+        updatedJob,
+        options
+      );
+      res.send(result);
+    });
+
     //! Add a Job
     app.post("/add-a-job", async (req, res) => {
       const data = req.body;
