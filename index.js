@@ -30,6 +30,20 @@ async function run() {
     console.log("MongoDB Running");
 
     //! Collections
+    const allJobsCollection = client.db("JobNestDB").collection("AllJobs");
+
+    //! Get All Jobs
+    app.get("/all-jobs", async (req, res) => {
+      const result = await allJobsCollection.find().toArray();
+      res.send(result);
+    });
+
+    //! Add a Job
+    app.post("/add-a-job", async (req, res) => {
+      const data = req.body;
+      const result = await allJobsCollection.insertOne(data);
+      res.send(result);
+    });
   } finally {
   }
 }
