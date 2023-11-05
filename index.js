@@ -65,7 +65,7 @@ async function run() {
       const result = await allJobsCollection.deleteOne(target);
       res.send(result);
     });
-    //! Delete my job from applied job too
+    //todo Delete my job from applied job too
     app.delete("/delete-my-job-from-applied-job/:id", async (req, res) => {
       const id = req.params.id;
       const target = { jobID: id };
@@ -129,7 +129,7 @@ async function run() {
       );
       res.send(result);
     });
-    //! Update Jobs from Applied Jobs too
+    //todo Update Jobs from Applied Jobs too
     app.patch("/update-jobs/:id", async (req, res) => {
       const id = req.params.id;
       const data = req.body;
