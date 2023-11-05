@@ -3,7 +3,7 @@ const cors = require("cors");
 const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, serialize } = require("mongodb");
 
 //! Middlewares
 app.use(express.json());
@@ -34,9 +34,26 @@ async function run() {
 
     //! Get All Jobs
     app.get("/all-jobs", async (req, res) => {
-      const result = await allJobsCollection.find().toArray();
+      let query = {};
+      if (req.query?.category) {
+        const category = req.query.category;
+        const categoryValue = category.split(" ").join("").toLowerCase();
+        query = { jobCategory: categoryValue };
+      } else if (req.query?.search) {
+        const search = req.query.search;
+        query = { jobTitle: { $regex: new RegExp(search, "i") } };
+      } else if (req.query?.email) {
+        const email = req.query.email;
+        query = { authorEmail: email };
+      }
+      const result = await allJobsCollection.find(query).toArray();
       res.send(result);
     });
+
+    //! Get One Job
+    // app.get('/job-details/:id',async(req,res)=>{
+
+    // })
 
     //! Add a Job
     app.post("/add-a-job", async (req, res) => {
