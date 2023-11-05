@@ -107,6 +107,51 @@ async function run() {
       res.send(result);
     });
 
+    //! Update a job
+    app.patch("/update-a-job/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const target = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateJob = {
+        $set: {
+          jobTitle: data.jobTitle,
+          jobCategory: data.jobCategory,
+          applicationDeadline: data.applicationDeadline,
+          salaryRangeStart: data.salaryRangeStart,
+          salaryRangeEnd: data.salaryRangeEnd,
+        },
+      };
+      const result = await allJobsCollection.updateOne(
+        target,
+        updateJob,
+        options
+      );
+      res.send(result);
+    });
+    //! Update Jobs from Applied Jobs too
+    app.patch("/update-jobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const target = { jobID: id };
+      const options = { upsert: true };
+      const updateJob = {
+        $set: {
+          jobTitle: data.jobTitle,
+          jobCategory: data.jobCategory,
+          applicationDeadline: data.applicationDeadline,
+          salaryRangeStart: data.salaryRangeStart,
+          salaryRangeEnd: data.salaryRangeEnd,
+        },
+      };
+      const result = await appliedJobsCollection.updateMany(
+        target,
+        updateJob,
+        options
+      );
+      res.send(result);
+    });
+
     //! Add Applied Job
     app.post("/add-a-applied-job", async (req, res) => {
       const data = req.body;
