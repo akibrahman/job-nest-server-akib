@@ -58,6 +58,21 @@ async function run() {
       res.send(result);
     });
 
+    //! Delete My Job
+    app.delete("/delete-my-job/:id", async (req, res) => {
+      const id = req.params.id;
+      const target = { _id: new ObjectId(id) };
+      const result = await allJobsCollection.deleteOne(target);
+      res.send(result);
+    });
+    //! Delete my job from applied job too
+    app.delete("/delete-my-job-from-applied-job/:id", async (req, res) => {
+      const id = req.params.id;
+      const target = { jobID: id };
+      const result = await appliedJobsCollection.deleteMany(target);
+      res.send(result);
+    });
+
     //! Get One Job
     app.get("/job-details/:id", async (req, res) => {
       const id = req.params.id;
@@ -66,7 +81,7 @@ async function run() {
       res.send(result);
     });
 
-    //! Update Applihcants Count in a job
+    //! Update Applicants Count in a job
     app.patch("/applicants-count/:id", async (req, res) => {
       const id = req.params.id;
       const data = req.body;
@@ -96,6 +111,14 @@ async function run() {
     app.post("/add-a-applied-job", async (req, res) => {
       const data = req.body;
       const result = await appliedJobsCollection.insertOne(data);
+      res.send(result);
+    });
+
+    //! Get user wise Applied Jobs
+    app.get("/applied-jobs", async (req, res) => {
+      const email = req.query.email;
+      const query = { applicantEmail: email };
+      const result = await appliedJobsCollection.find(query).toArray();
       res.send(result);
     });
 
