@@ -3,7 +3,12 @@ const cors = require("cors");
 const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion, serialize } = require("mongodb");
+const {
+  MongoClient,
+  ServerApiVersion,
+  serialize,
+  ObjectId,
+} = require("mongodb");
 
 //! Middlewares
 app.use(express.json());
@@ -51,9 +56,12 @@ async function run() {
     });
 
     //! Get One Job
-    // app.get('/job-details/:id',async(req,res)=>{
-
-    // })
+    app.get("/job-details/:id", async (req, res) => {
+      const id = req.params.id;
+      const target = { _id: new ObjectId(id) };
+      const result = await allJobsCollection.findOne(target);
+      res.send(result);
+    });
 
     //! Add a Job
     app.post("/add-a-job", async (req, res) => {
