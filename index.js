@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -12,7 +14,13 @@ const {
 
 //! Middlewares
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5176"],
+    credentials: true,
+  })
+);
+app.use(cookieParser());
 
 //! Creating MongoDB Environment
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.bfs9yhw.mongodb.net/?retryWrites=true&w=majority`;
@@ -39,6 +47,26 @@ async function run() {
     const appliedJobsCollection = client
       .db("JobNestDB")
       .collection("AppliedJobs");
+
+    //! Create Token
+    app.post("/create-jwt", async (req, res) => {
+      const user = await req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
+
+    //! Remove Token
+    app.post("/remove-jwt", async (req, res) => {
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
 
     //! Get All Jobs
     app.get("/all-jobs", async (req, res) => {
