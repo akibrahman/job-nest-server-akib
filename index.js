@@ -18,9 +18,26 @@ app.use(
   cors({
     origin: ["http://localhost:5176"],
     credentials: true,
+    optionsSuccessStatus: 200,
   })
 );
 app.use(cookieParser());
+
+//! Verify Token Middleware
+const verifyToken = async (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ success: false, message: "Unauthorized" });
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ success: false, message: "Unauthorized" });
+    }
+    req.data = decoded;
+    console.log("Approved");
+    next();
+  });
+};
 
 //! Creating MongoDB Environment
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.bfs9yhw.mongodb.net/?retryWrites=true&w=majority`;
@@ -52,7 +69,7 @@ async function run() {
     app.post("/create-jwt", async (req, res) => {
       const user = await req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1h",
+        expiresIn: 60,
       });
       res
         .cookie("token", token, {
@@ -192,7 +209,7 @@ async function run() {
     });
 
     //! Get user wise Applied Jobs
-    app.get("/applied-jobs", async (req, res) => {
+    app.get("/applied-jobs", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { applicantEmail: email };
       const result = await appliedJobsCollection.find(query).toArray();
