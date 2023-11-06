@@ -116,6 +116,8 @@ async function run() {
       const updateJob = {
         $set: {
           jobTitle: data.jobTitle,
+          companyImgURL: data.companyImgURL,
+          bannerImgURL: data.bannerImgURL,
           jobCategory: data.jobCategory,
           applicationDeadline: data.applicationDeadline,
           salaryRangeStart: data.salaryRangeStart,
@@ -138,6 +140,8 @@ async function run() {
       const updateJob = {
         $set: {
           jobTitle: data.jobTitle,
+          companyImgURL: data.companyImgURL,
+          bannerImgURL: data.bannerImgURL,
           jobCategory: data.jobCategory,
           applicationDeadline: data.applicationDeadline,
           salaryRangeStart: data.salaryRangeStart,
