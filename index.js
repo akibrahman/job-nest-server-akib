@@ -69,7 +69,7 @@ async function run() {
     app.post("/create-jwt", async (req, res) => {
       const user = await req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: 60,
+        expiresIn: "1h",
       });
       res
         .cookie("token", token, {
@@ -97,6 +97,20 @@ async function run() {
         query = { jobTitle: { $regex: new RegExp(search, "i") } };
       } else if (req.query?.email) {
         const email = req.query.email;
+        query = { authorEmail: email };
+      }
+      const result = await allJobsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //! Get My Jobs
+    app.get("/my-jobs", verifyToken, async (req, res) => {
+      let query = {};
+      if (req.query?.email) {
+        const email = req.query.email;
+        if (email !== req.data.email) {
+          return res.status(401).send({ Message: "Forbidden" });
+        }
         query = { authorEmail: email };
       }
       const result = await allJobsCollection.find(query).toArray();
