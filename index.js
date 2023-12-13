@@ -170,11 +170,47 @@ async function run() {
       res.send(user);
     });
 
+    //! Get All Users
+
+    app.get("/all-users-admin", verifyToken, async (req, res) => {
+      const users = await usersCollection.find().toArray();
+      res.send(users);
+    });
+
     //! Get Role
     app.get("/get-role", async (req, res) => {
       const email = req.query.email;
       const result = await usersCollection.findOne({ email });
       res.send(result.role);
+    });
+    //! Update Role
+    app.put("/update-role", async (req, res) => {
+      const email = req.query.email;
+      const role = req.query.role;
+      const result = await usersCollection.updateOne(
+        { email },
+        {
+          $set: {
+            role,
+            requested: "false",
+          },
+        }
+      );
+      res.send(result);
+    });
+
+    //! Requeste to be host
+    app.put("/req-for-host", async (req, res) => {
+      const email = req.query.email;
+      const result = await usersCollection.updateOne(
+        { email },
+        {
+          $set: {
+            requested: "true",
+          },
+        }
+      );
+      res.send(result);
     });
 
     //! Get All Jobs
