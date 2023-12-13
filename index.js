@@ -2,9 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const app = express();
+const mongoose = require("mongoose");
+const job = require("./job");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
+const app = express();
 const {
   MongoClient,
   ServerApiVersion,
@@ -13,14 +15,20 @@ const {
 } = require("mongodb");
 
 //! Middlewares
-app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5176"],
+    origin: [
+      "http://localhost:5173",
+      "https://jobnest-akib.web.app",
+      "https://jobnest-akib.firebaseapp.com",
+    ],
+    // origin: "http://localhost:5176",
     credentials: true,
     optionsSuccessStatus: 200,
   })
 );
+app.use(express.json());
+
 app.use(cookieParser());
 
 //! Verify Token Middleware
@@ -34,7 +42,6 @@ const verifyToken = async (req, res, next) => {
       return res.status(401).send({ success: false, message: "Unauthorized" });
     }
     req.data = decoded;
-    console.log("Approved");
     next();
   });
 };
@@ -49,6 +56,48 @@ const client = new MongoClient(uri, {
   },
 });
 
+mongoose.connect(
+  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.bfs9yhw.mongodb.net/?retryWrites=true&w=majority`,
+  { dbName: "JobNestDB" }
+);
+
+const testSchema = new mongoose.Schema({
+  name: { type: String },
+  age: Number,
+  createdAt: { type: Date, default: () => Date.now() },
+  bestFriend: { type: [mongoose.SchemaTypes.ObjectId], ref: "alljob" },
+});
+
+const testModel = mongoose.model("test", testSchema);
+
+app.post("/test-schema", async (req, res) => {
+  try {
+    //! Another Way
+    // const testCreator = new testModel({ name: "Sakib", age: 40 });
+    // const result = await testCreator.save();
+    //! Creating
+    // const result = await testModel.create({ name: "AfrojaR.", age: 25 });
+    // await result.save();
+    // res.send(result);
+    //! Updating
+    // const abbu = await testModel.exists({ name: "AkibR." });
+    const abbu = await testModel
+      .where("name")
+      .equals("ZillurR.")
+      .populate("bestFriend");
+    // abbu[0].bestFriend = [
+    //   "6549db3c36b91290397468a1",
+    //   "654a02e336b91290397468a3",
+    // ];
+    // await abbu[0].save();
+
+    console.log(abbu);
+    res.send(abbu);
+  } catch (error) {
+    res.send(error.message);
+  }
+});
+
 //!First Responce
 app.get("/", (req, res) => {
   res.send("JobNest is Running");
@@ -60,7 +109,9 @@ async function run() {
     console.log("MongoDB Running");
 
     //! Collections
-    const allJobsCollection = client.db("JobNestDB").collection("AllJobs");
+
+    const usersCollection = client.db("JobNestDB").collection("AllUsers");
+    const allJobsCollection = client.db("JobNestDB").collection("alljobs");
     const appliedJobsCollection = client
       .db("JobNestDB")
       .collection("AppliedJobs");
@@ -83,6 +134,47 @@ async function run() {
     //! Remove Token
     app.post("/remove-jwt", async (req, res) => {
       res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
+    //! Save User to DB
+    app.put("/all-users/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const query = { email: email };
+      const options = { upsert: true };
+      const isExist = await usersCollection.findOne(query);
+      console.log("User found?----->", isExist);
+      if (isExist) {
+        await usersCollection.updateOne(
+          query,
+          {
+            $set: { name: user.name, timestampNow: Date.now() },
+          },
+          options
+        );
+        return res.send(isExist);
+      }
+      const result = await usersCollection.updateOne(
+        query,
+        {
+          $set: { ...user, timestamp: Date.now(), timestampNow: Date.now() },
+        },
+        options
+      );
+      res.send(result);
+    });
+
+    //! Get one user - User
+    app.get("/user", verifyToken, async (req, res) => {
+      const email = req.query.email;
+      const user = await usersCollection.findOne({ email });
+      res.send(user);
+    });
+
+    //! Get Role
+    app.get("/get-role", async (req, res) => {
+      const email = req.query.email;
+      const result = await usersCollection.findOne({ email });
+      res.send(result.role);
     });
 
     //! Get All Jobs
@@ -161,9 +253,16 @@ async function run() {
 
     //! Add a Job
     app.post("/add-a-job", async (req, res) => {
-      const data = req.body;
-      const result = await allJobsCollection.insertOne(data);
-      res.send(result);
+      try {
+        const data = req.body;
+        // console.log(data);
+        const result = await job.create(data);
+        // await result.save();
+        // const result = await allJobsCollection.insertOne(data);
+        res.send(result);
+      } catch (e) {
+        res.send(e.message);
+      }
     });
 
     //! Update a job
@@ -178,6 +277,7 @@ async function run() {
           companyImgURL: data.companyImgURL,
           bannerImgURL: data.bannerImgURL,
           jobCategory: data.jobCategory,
+          jobDescription: data.jobDescription,
           applicationDeadline: data.applicationDeadline,
           salaryRangeStart: data.salaryRangeStart,
           salaryRangeEnd: data.salaryRangeEnd,
@@ -191,11 +291,11 @@ async function run() {
       res.send(result);
     });
     //todo Update Jobs from Applied Jobs too
-    app.patch("/update-jobs/:id", async (req, res) => {
+    app.put("/update-jobs/:id", async (req, res) => {
       const id = req.params.id;
       const data = req.body;
       const target = { jobID: id };
-      const options = { upsert: true };
+      const options = { upsert: false };
       const updateJob = {
         $set: {
           jobTitle: data.jobTitle,
